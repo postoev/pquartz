@@ -1,2 +1,2 @@
 # pquartz
-SDLC course project repository (719 group)
+Simple instant messenger, SDLC course tutorial project (719 group)
