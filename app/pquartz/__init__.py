@@ -3,9 +3,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask.ext.login import LoginManager
 from flask_bootstrap import Bootstrap
 
-app = Flask(__name__, instance_relative_config=True)
+app = Flask(__name__)
 app.config.from_object('config')
-app.config.from_pyfile('config.py')
 
 db = SQLAlchemy(app)
 lm = LoginManager()
