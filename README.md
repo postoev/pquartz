@@ -36,7 +36,7 @@ pip install -r requirements.txt --user
 ```sh
 python3 -m pip install -r requirements.txt --user
 ```
-3. В репозитории в файле config.py указать желаемый путь к файлу базы данных (SQLALCHEMY_DATABASE_URI), а также адрес и порт HTTP сервера (SERVER_NAME). В качестве IP-адреса сервера рекоммендуется указывать ***locahost*** для локального подключения.
+3. В репозитории в файле config.py указать желаемый путь к файлу базы данных (SQLALCHEMY_DATABASE_URI) в виде 'sqlite:///<directory>\\<another_directory>\\<...>\\<name_of_file>.db', а также адрес и порт HTTP сервера (SERVER_NAME). В качестве IP-адреса сервера рекоммендуется указывать ***locahost*** для локального подключения.
 
 4. Выполнить из командной строки иницализацию таблиц базы данных:
 ```sh
