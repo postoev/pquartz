@@ -18,6 +18,7 @@ sudo apt-get install sqlite3 libsqlite3-dev
 5. Склонировать репозитория в желаемую директорию и переместиться в ветку mvp, выполнив команду в командной строке Git Bash:
 ```git
 git clone https://github.com/postoev/pquartz.git 
+cd pquartz
 git checkout mvp
 ```
 
