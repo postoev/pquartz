@@ -1,3 +1,4 @@
+# -*- coding: cp1251 -*-
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
@@ -40,7 +41,9 @@ class Receiver(db.Model):
 
     id = db.Column(db.Integer, autoincrement=True, primary_key=True)
     type = db.Column(db.String(MAX_TYPE_LENGTH))
-
+    updates = db.relationship('Updates',
+                              uselist = False,
+                              backref = 'receiver')
     __mapper_args__ = {
         'polymorphic_identity': 'receiver',
         'polymorphic_on': type
@@ -79,7 +82,10 @@ class User(UserMixin, Receiver):
                                 lazy='dynamic',
                                 primaryjoin=(id == messages.c.sender_id), 
                                 backref=db.backref('sender', lazy=True))
-
+    #updates
+    updates = db.relationship('Update',
+                              backref = 'user',
+                              lazy = True)
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
@@ -120,6 +126,7 @@ class Message(db.Model):
     }
 
 
+
 # Simple text message model (Single Table inheritance)
 class TextMessage(Message):
     text = db.Column(db.Text, nullable=False)
@@ -128,10 +135,50 @@ class TextMessage(Message):
         return '<TextMessage created_time=%r, text=%r>' % (self.created_time, self.text,)
 
     __mapper_args__ = {
-        'polymorphic_identity': 'text_message',
+        'polymorphic_identity': 'text_message'
+    }
+
+# File message
+class FileMessage(Message):
+    name_file = db.Column(db.NameFile, nullable=False)
+    data = db.Column(db.Data)
+
+    def __repr__(self):
+        return '<FileMessage created_time=%r, name_file=%r>' % (self.created_time, self.name_file)
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'filemessage'
+    }
+    
+
+
+#Updates model
+class Update(db.Model):
+    __tablename__ = 'update'
+
+    id = db.Column(db.Integer, primary_key=True)
+    type = db.Column(db.String(MAX_TYPE_LENGTH))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    __mapper_args__ = {
+        'polymorphic_identity': 'update',
+        'polymorphic_on': type
     }
 
 
+class UpdMessage(Update):
+    sender_id = db.Column(db.Integer, db.ForeignKey('receiver.id'))
+    type = db.Column(db.String(MAX_TYPE_LENGTH), db.ForeignKey('reciver.id'))
+
+
+class UpdFriend(Update):
+    friend_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable = False)
+    type_fr = db.Column(db.Integer)
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'updfriend'
+    }
+
+    
 # Helper for Flask-Login
 @lm.user_loader
 def load_user(id):
