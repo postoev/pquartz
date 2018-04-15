@@ -41,9 +41,7 @@ class Receiver(db.Model):
 
     id = db.Column(db.Integer, autoincrement=True, primary_key=True)
     type = db.Column(db.String(MAX_TYPE_LENGTH))
-    updates = db.relationship('Updates',
-                              uselist = False,
-                              backref = 'receiver')
+    
     __mapper_args__ = {
         'polymorphic_identity': 'receiver',
         'polymorphic_on': type
@@ -84,6 +82,12 @@ class User(UserMixin, Receiver):
                                 backref=db.backref('sender', lazy=True))
 
     
+    #updates
+    updates = db.relationship('Updates',
+                              uselist = False,
+                              backref = 'user')
+
+    
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
@@ -118,6 +122,10 @@ class Message(db.Model):
     id = db.Column(db.Integer, autoincrement=True, primary_key=True)
     type = db.Column(db.String(MAX_TYPE_LENGTH))
     created_time = db.Column(db.DateTime, nullable=False)
+    update = db.relationship('Update',
+                              uselist = False,
+                              backref = 'message')
+
     __mapper_args__ = {
         'polymorphic_identity': 'message',
         'polymorphic_on': type
@@ -164,7 +172,7 @@ class Update(db.Model):
 
 
 class UpdMessage(Update):
-    sender_id = db.Column(db.Integer, db.ForeignKey('receiver.id'))
+    sender_id = db.Column(db.Integer, db.ForeignKey('message.id'))
 
 
 class UpdFriend(Update):
