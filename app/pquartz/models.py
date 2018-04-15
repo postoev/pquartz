@@ -82,10 +82,8 @@ class User(UserMixin, Receiver):
                                 lazy='dynamic',
                                 primaryjoin=(id == messages.c.sender_id), 
                                 backref=db.backref('sender', lazy=True))
-    #updates
-    updates = db.relationship('Update',
-                              backref = 'user',
-                              lazy = True)
+
+    
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
@@ -167,7 +165,6 @@ class Update(db.Model):
 
 class UpdMessage(Update):
     sender_id = db.Column(db.Integer, db.ForeignKey('receiver.id'))
-    type = db.Column(db.String(MAX_TYPE_LENGTH), db.ForeignKey('reciver.id'))
 
 
 class UpdFriend(Update):
