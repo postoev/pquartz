@@ -47,7 +47,7 @@
    2. [Аппаратный интерфейс](#interface_machine).
    3. [Программный интерфейс](#interface_program).
    4. [Интерфейс связи](#interface_interaction).
-   5. [Прототип](#https://marvelapp.com/329df43).
+   5. [Прототип](https://marvelapp.com/329df43).
 
 
 ## <a name="intro"></a>1. Вступление.
