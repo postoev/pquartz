@@ -1,21 +1,21 @@
 from flask import render_template, flash, redirect, session, url_for, request, g
 from flask.ext.login import login_user, logout_user, current_user, login_required
 from werkzeug.urls import url_parse
-from . import app, db, bootstrap
+from . import application, db, bootstrap
 from .forms import LoginForm, RegistrationForm
 from .models import User
 
 
 # Index page (session control)
-@app.route('/')
-@app.route('/index')
+@application.route('/')
+@application.route('/index')
 @login_required
 def index():
     return render_template('index.html', title='Home')
 
 
 # Login form
-@app.route('/login', methods=['GET', 'POST'])
+@application.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
@@ -38,14 +38,14 @@ def login():
 
 
 # Logout
-@app.route('/logout')
+@application.route('/logout')
 def logout():
     logout_user()
     return redirect(url_for('index'))
 
 
 # Registration form
-@app.route('/register', methods=['GET', 'POST'])
+@application.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
@@ -65,7 +65,7 @@ def register():
 
 
 # Example page
-@app.route('/dashboard')
+@application.route('/dashboard')
 @login_required
 def dashboard():
     return render_template('dashboard.html', title="Dashboard")
