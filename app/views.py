@@ -4,6 +4,7 @@ from werkzeug.urls import url_parse
 from . import application, db, bootstrap
 from .forms import LoginForm, RegistrationForm
 from .models import User
+from flask import jsonify
 
 
 # Index page (session control)
@@ -67,54 +68,82 @@ def register():
 @app.route('/friends/<user_id>', methods = ['GET'])
 @login_required
 def friends(user_id):
-    friends = db.session.friends.get(user.id == user_id)
+    users = User.query.get(user_id)
+    acc_in = users.in_friend_request.query.filter_by(accepted = True)
+    acc_out = users.out_friend_request.query.filter_by(accepted = True)
     result = []
-    for f in friends:
+    for f in acc_in:
         f_result = {}
+        f_result['id'] = f.id
         f_result['name'] = f.name
         f_result['realname'] = f.realname
         f_result['email'] = f.email
         result.append(f_result)
-
+    for f in acc_out:
+        f_result = {}
+        f_result['id'] = f.id
+        f_result['name'] = f.name
+        f_result['realname'] = f.realname
+        f_result['email'] = f.email
+        result.append(f_result)
     return render_template('friends.html', title = 'Friends', data = result)
 
 # Find user
-@app.route('/friends', methods = ['GET'])
+@app.route('/users', methods = ['GET'])
 @login_required
 def find_user():
     f_name = request.args.get('name')
-    f_user = User.query.filter_by(name = f_name).first()
-    result = {}
-    result.['name'] = f_user.name
-    result.['realname'] = f_user.realname
-    result.['email'] = f_user.email
-    return result
+    f_user = User.query.filter_by(name = f_name).first(10)
+    result_list = []
+    for f in f_user:
+        result = {}
+        result['id'] = f.id
+        result['name'] = f.name
+        result['realname'] = f.realname
+        result['email'] = f.email
+        result_list.append(result)
+    return result_list
 
 # Profile
 @app.route('/profile/<id>', methods = ['GET'])
 @login_required
 def profile(id):
-    f_user = User.query.filter_by(id = id).first()
-    return render_template('profile.html', title = 'Profile', data = f_user)
+    f_user = User.query.get(id)
+    result = {}
+    result['id'] = f.id
+    result['name'] = f_user.name
+    result['realname'] = f_user.realname
+    result['email'] = f_user.email
+    return render_template('profile.html', title = 'Profile', data = jsonify(result))
 
 # Send message
 @app.route('/chats', methods = ['GET', 'POST'])
 @login_required
 def send_mess():
     sender_id = request.args.get('sender_id')
-    message = request.args.get('message')
+    message = {}
+    created_time = request.args.get('created_time')
+    message['created_time'] = created_time
+    type_mess = request.args.get('type')
+    message['type'] = type_mess
+    if type_mess = 'textmessage':
+        text_mess = request.args.get('textmessage')
+        message['textmessage'] = text_mess
+    if type_mess = 'filemessage':
+        name_of_file = request.args.get('filename')
+        message['filename'] = name_of_file
     chat_id = request.args.get('chat_id')
     user1 = User.query.filter_by(id = sender_id).first()
-    chat1 = Chat.query.filter_by(id = chat_id).first()
+    chat1 = user1.chats.query.filter_by(id = chat_id)
     user1.out_messages.append(message)
     db.session.add(user1)
     us_chat = db.session.users.get(chat.id == chat_id)
+    upd = UpdMesssage(user=f, message=message)
+    db.session.add(upd)
     for f in us_chat:
         if f.id != sender_id:
             f.in_message.append(message)
-            upd = UpdMesssage(user = f, message = message)
             db.session.add(f)
-            db.session.add(upd)
     db.session.commit()
 
 # Open dialog
@@ -124,13 +153,13 @@ def open_dia(user_id, chat_id):
     user_id = request.args.get('sender_id')
     chat_id = request.args.get('chat_id')
     list_mess = []
-    messages = db.session.messages.get(chat.id == chat_id)
+    messages = Chat.in_messages.query.filter_by(chat_id)
     for mess in messages:
         f_mess = {}
         f_mess['time'] = mess.created_time
-        if mess.type == 'TextMessage':
+        if mess.type == 'textmessage':
             f_mess['text'] = mess.textmessage.text
-        if mess.type = 'FileMessage':
+        if mess.type = 'filemessage':
             f_mess['file_name'] = mess.filemessage.filename
             f_mess['data'] = mess.filemessage.data
         list_mess.append(f_mess)
@@ -141,7 +170,7 @@ def open_dia(user_id, chat_id):
 @app.route('/chats/<id>', methods = ['GET'])
 @login_required
 def list_chats(user_id):
-    chats = db.session.chat.get(user.id == user_id)
+    chats = User.query.get(user_id)
     result = []
     for f in chats:
         f_chat = f.name
