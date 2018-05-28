@@ -5,7 +5,7 @@ from . import application, db, bootstrap
 from .forms import LoginForm, RegistrationForm
 from .models import User
 from flask import jsonify
-
+from sqlalchemy import desc
 
 # Index page (session control)
 @application.route('/')
@@ -126,23 +126,22 @@ def send_mess():
     message['created_time'] = created_time
     type_mess = request.args.get('type')
     message['type'] = type_mess
-    if type_mess = 'textmessage':
+    if type_mess == "textmessage":
         text_mess = request.args.get('textmessage')
         message['textmessage'] = text_mess
-    if type_mess = 'filemessage':
+    if type_mess == "filemessage":
         name_of_file = request.args.get('filename')
         message['filename'] = name_of_file
+    user1 = User.query.get(sender_id)
     chat_id = request.args.get('chat_id')
-    user1 = User.query.filter_by(id = sender_id).first()
-    chat1 = user1.chats.query.filter_by(id = chat_id)
     user1.out_messages.append(message)
     db.session.add(user1)
-    us_chat = db.session.users.get(chat.id == chat_id)
-    upd = UpdMesssage(user=f, message=message)
-    db.session.add(upd)
+    us_chat = User.chats.query.filter_by(id == chat_id)
     for f in us_chat:
         if f.id != sender_id:
             f.in_message.append(message)
+            upd = UpdMessage(user=f, message=message)
+            db.session.add(upd)
             db.session.add(f)
     db.session.commit()
 
@@ -152,25 +151,27 @@ def send_mess():
 def open_dia(user_id, chat_id):
     user_id = request.args.get('sender_id')
     chat_id = request.args.get('chat_id')
-    list_mess = []
-    messages = Chat.in_messages.query.filter_by(chat_id)
+    list_mess_file = []
+    list_mess_text = []
+    messages = Chat.in_messages.query.filter_by(chat_id).order_by(desc(created_time))
     for mess in messages:
         f_mess = {}
         f_mess['time'] = mess.created_time
         if mess.type == 'textmessage':
             f_mess['text'] = mess.textmessage.text
-        if mess.type = 'filemessage':
+            list_mess_text.append(f_mess)
+        if mess.type == 'filemessage':
             f_mess['file_name'] = mess.filemessage.filename
             f_mess['data'] = mess.filemessage.data
-        list_mess.append(f_mess)
-    return list_mess
+            list_mess_file.append(f_mess)
+    return jsonify({list_mess_text, list_mess_file})
 
 
 # Chats
 @app.route('/chats/<id>', methods = ['GET'])
 @login_required
 def list_chats(user_id):
-    chats = User.query.get(user_id)
+    chats = User.chats.query.get(user_id)
     result = []
     for f in chats:
         f_chat = f.name
@@ -184,27 +185,45 @@ def del_message(user_id, chat_id, message_id):
     user_id = request.args.get('sender_id')
     chat_id = request.args.get('chat_id')
     message_id = request.args.get('message_id')
+    chat1 = Chat.query.get(chat_id)
+    user1 = User.query.get(user_id)
+    mess = chat1.in_messages.query.get(message_id)
+    mess.delete()
+    mess1 = user1.out_messages.query.get(message_id)
+    mess1.delete()
+    db.session.commit()
 
 
 # Loading Updates
+@app.route('/upd/<id>', methods = ['GET', 'POST'])
 @login_required
 def load_upd():
     user_id = request.args.get('user_id')
     upd = db.session.updates.get(user.id == user_id)
-    result = []
+    tmess_upd = []
+    fmess_upd = []
+    fr_upd = []
     for f in upd:
         f_res = {}
         f_res['id'] = f.id
         f_res['type'] = f.type
         if f.type == 'updmessage':
-            f_res['created_time'] = f.message.createdtime
+            mess = Message.query.get(f.message_id)
+            f_res['created_time'] = mess.created_time
             if f.message.type == 'textmessage':
-                f_res['text'] = f.message.textmessage.text
+                f_res['text'] = mess.text
+                tmess_upd.append(f_res)
             if f.message.type == 'filemessage':
-                f_res['filename'] = f.message.filemessage.filename
-                f_res['data'] = f.message.filemessage.data
+                f_res['filename'] = mess.filename
+                fmess_upd.append(f_res)
         if f.type == 'updfriend':
-            f_res['']
+            frie = User.query.get(out_friend_request = f.friendship_id)
+            f_res['id'] = frie.id
+            f_res['name'] = frie.name
+            f_res['realname'] = frie.realname
+            f_res['email'] = frie.email
+            fr_upd.append(f_res)
+    return jsonify({tmess_upd, fmess_upd, fr_upd})
 
 
 #Send request
@@ -216,8 +235,10 @@ def send_req():
     user1 = User.query.get(sender_id)
     user2 = User.query.get(fr_id)
     relationship1 = Friendship(accepted = False)
+    upd = UpdFriend(user = user2, friendship = relationship1)
     user1.out_friend_requests.append(relationship1)
     user2.in_friend_requests.append(relationship1)
+    db.session.add(upd)
     db.session.add(user1)
     db.session.add(user2)
     db.session.commit()
@@ -239,10 +260,19 @@ def acc_req():
     db.session.commit()
 
 # Delete friend
-@app.route('/friends/<id>', methods = ['GET', 'POST'])
+@app.route('/friends', methods = ['GET', 'POST'])
 @login_required
-def del_fr(user_id, fr_id):
-
+def del_fr():
+    user_id = request.args.get('user_id')
+    fr_id = request.args.get('fr_id')
+    user1 = User.query.get(user_id)
+    fr = user1.in_friend.query.get(fr_id)
+    if fr:
+        fr.accepted = False
+    req = user1.out_friend_requests.query.get(fr_id)
+    if req:
+        req.delete()
+    db.session.commit()
 
 # Example page
 @application.route('/dashboard')
