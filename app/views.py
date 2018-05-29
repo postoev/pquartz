@@ -65,8 +65,22 @@ def register():
 
 
 # Example page
-@application.route('/dashboard')
+@application.route('/dashboard', methods=['GET', 'POST'])
 @login_required
 def dashboard():
-    return render_template('dashboard.html', title="Dashboard")
+    print(current_user.chats)
+    chat_messages=[{"message": "asdasd"}]
+    return render_template('dashboard.html', title="Dashboard", chat_messages=chat_messages)
+
+# @application.route('/sobesedniks', methods=['POST'])
+# @login_required
+# def dashboard():
+#     print(current_user.chats)
+#     return render_template('dashboard.html', title="Dashboard")
+
+    # User page
+@application.route('/userpage')
+@login_required
+def userpage():
+    return render_template('userpage.html', title="Userpage")
 

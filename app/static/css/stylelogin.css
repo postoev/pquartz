@@ -1,0 +1,39 @@
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    
+}
+.wrap {
+    margin: 10%;
+    display: flex;
+    flex-direction: column; 
+    justify-content: center;
+}
+
+.wrap h1 {
+    align-self: center;
+    
+}
+
+.wrap p {
+    align-self: center;
+}
+
+
+.wrap input {
+    margin-top: 15px;
+    height: 35px;
+    width: 300px;
+    border-style: none none solid none;
+    border-color: black;
+}
+
+.wrap button {
+    height: 35px;
+    margin-top: 20px;
+    width: 50%;
+    align-self: center;
+    background-color: black;
+    color: aliceblue;
+}
