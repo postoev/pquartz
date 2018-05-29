@@ -4,7 +4,8 @@ from werkzeug.urls import url_parse
 from . import application, db, bootstrap
 from .forms import LoginForm, RegistrationForm
 from .models import User
-
+from flask import jsonify
+from sqlalchemy import desc
 
 # Index page (session control)
 @application.route('/')
@@ -63,11 +64,221 @@ def register():
 
     return render_template('register.html', title='Register', form=form)
 
+# List of friends
+@app.route('/friends/<user_id>', methods = ['GET'])
+@login_required
+def friends(user_id):
+    users = User.query.get(user_id)
+    acc_in = users.in_friend_request.query.filter_by(accepted = True)
+    acc_out = users.out_friend_request.query.filter_by(accepted = True)
+    result = []
+    for f in acc_in:
+        f_result = {}
+        f_result['id'] = f.id
+        f_result['name'] = f.name
+        f_result['realname'] = f.realname
+        f_result['email'] = f.email
+        result.append(f_result)
+    for f in acc_out:
+        f_result = {}
+        f_result['id'] = f.id
+        f_result['name'] = f.name
+        f_result['realname'] = f.realname
+        f_result['email'] = f.email
+        result.append(f_result)
+    return render_template('friends.html', title = 'Friends', data = result)
+
+# Find user
+@app.route('/users', methods = ['GET'])
+@login_required
+def find_user():
+    f_name = request.args.get('name')
+    f_user = User.query.filter_by(name = f_name).first(10)
+    result_list = []
+    for f in f_user:
+        result = {}
+        result['id'] = f.id
+        result['name'] = f.name
+        result['realname'] = f.realname
+        result['email'] = f.email
+        result_list.append(result)
+    return result_list
+
+# Profile
+@app.route('/profile/<id>', methods = ['GET'])
+@login_required
+def profile(id):
+    f_user = User.query.get(id)
+    result = {}
+    result['id'] = f.id
+    result['name'] = f_user.name
+    result['realname'] = f_user.realname
+    result['email'] = f_user.email
+    return render_template('profile.html', title = 'Profile', data = jsonify(result))
+
+# Send message
+@app.route('/chats', methods = ['GET', 'POST'])
+@login_required
+def send_mess():
+    sender_id = request.args.get('sender_id')
+    message = {}
+    created_time = request.args.get('created_time')
+    message['created_time'] = created_time
+    type_mess = request.args.get('type')
+    message['type'] = type_mess
+    if type_mess == "textmessage":
+        text_mess = request.args.get('textmessage')
+        message['textmessage'] = text_mess
+    if type_mess == "filemessage":
+        name_of_file = request.args.get('filename')
+        message['filename'] = name_of_file
+    user1 = User.query.get(sender_id)
+    chat_id = request.args.get('chat_id')
+    user1.out_messages.append(message)
+    db.session.add(user1)
+    us_chat = User.chats.query.filter_by(id == chat_id)
+    for f in us_chat:
+        if f.id != sender_id:
+            f.in_message.append(message)
+            upd = UpdMessage(user=f, message=message)
+            db.session.add(upd)
+            db.session.add(f)
+    db.session.commit()
+
+# Open dialog
+@app.route('/chats', methods = ['GET'])
+@login_required
+def open_dia(user_id, chat_id):
+    user_id = request.args.get('sender_id')
+    chat_id = request.args.get('chat_id')
+    list_mess_file = []
+    list_mess_text = []
+    messages = Chat.in_messages.query.filter_by(chat_id).order_by(desc(created_time))
+    for mess in messages:
+        f_mess = {}
+        f_mess['time'] = mess.created_time
+        if mess.type == 'textmessage':
+            f_mess['text'] = mess.textmessage.text
+            list_mess_text.append(f_mess)
+        if mess.type == 'filemessage':
+            f_mess['file_name'] = mess.filemessage.filename
+            f_mess['data'] = mess.filemessage.data
+            list_mess_file.append(f_mess)
+    return jsonify({list_mess_text, list_mess_file})
+
+
+# Chats
+@app.route('/chats/<id>', methods = ['GET'])
+@login_required
+def list_chats(user_id):
+    chats = User.chats.query.get(user_id)
+    result = []
+    for f in chats:
+        f_chat = f.name
+        result.append(f_chat)
+    return render_template('chats.html', title = 'Chats', data = result)
+
+# Delete message
+@app.route('/chats/<id>', methods = ['GET', 'POST'])
+@login_required
+def del_message(user_id, chat_id, message_id):
+    user_id = request.args.get('sender_id')
+    chat_id = request.args.get('chat_id')
+    message_id = request.args.get('message_id')
+    chat1 = Chat.query.get(chat_id)
+    user1 = User.query.get(user_id)
+    mess = chat1.in_messages.query.get(message_id)
+    mess.delete()
+    mess1 = user1.out_messages.query.get(message_id)
+    mess1.delete()
+    db.session.commit()
+
+
+# Loading Updates
+@app.route('/upd/<id>', methods = ['GET', 'POST'])
+@login_required
+def load_upd():
+    user_id = request.args.get('user_id')
+    upd = db.session.updates.get(user.id == user_id)
+    tmess_upd = []
+    fmess_upd = []
+    fr_upd = []
+    for f in upd:
+        f_res = {}
+        f_res['id'] = f.id
+        f_res['type'] = f.type
+        if f.type == 'updmessage':
+            mess = Message.query.get(f.message_id)
+            f_res['created_time'] = mess.created_time
+            if f.message.type == 'textmessage':
+                f_res['text'] = mess.text
+                tmess_upd.append(f_res)
+            if f.message.type == 'filemessage':
+                f_res['filename'] = mess.filename
+                fmess_upd.append(f_res)
+        if f.type == 'updfriend':
+            frie = User.query.get(out_friend_request = f.friendship_id)
+            f_res['id'] = frie.id
+            f_res['name'] = frie.name
+            f_res['realname'] = frie.realname
+            f_res['email'] = frie.email
+            fr_upd.append(f_res)
+    return jsonify({tmess_upd, fmess_upd, fr_upd})
+
+
+#Send request
+@app.route('/friends', methods = ['GET', 'POST'])
+@login_required
+def send_req():
+    sender_id = request.args.get('user_id')
+    fr_id = request.args.get('user_id')
+    user1 = User.query.get(sender_id)
+    user2 = User.query.get(fr_id)
+    relationship1 = Friendship(accepted = False)
+    upd = UpdFriend(user = user2, friendship = relationship1)
+    user1.out_friend_requests.append(relationship1)
+    user2.in_friend_requests.append(relationship1)
+    db.session.add(upd)
+    db.session.add(user1)
+    db.session.add(user2)
+    db.session.commit()
+
+
+# Accept request
+@app.route('/friends', methods = ['GET', 'POST'])
+@login_required
+def acc_req():
+    sender_id = request.args.get('user_id')
+    fr_id = request.args.get('user_id')
+    user1 = User.query.get(sender_id)
+    user2 = User.query.get(fr_id)
+    relationship1 = Friendship(accepted=True)
+    user1.out_friend_requests.append(relationship1)
+    user2.in_friend_requests.append(relationship1)
+    db.session.add(user1)
+    db.session.add(user2)
+    db.session.commit()
+
+# Delete friend
+@app.route('/friends', methods = ['GET', 'POST'])
+@login_required
+def del_fr():
+    user_id = request.args.get('user_id')
+    fr_id = request.args.get('fr_id')
+    user1 = User.query.get(user_id)
+    fr = user1.in_friend.query.get(fr_id)
+    if fr:
+        fr.accepted = False
+    req = user1.out_friend_requests.query.get(fr_id)
+    if req:
+        req.delete()
+    db.session.commit()
 
 # Example page
 @application.route('/dashboard', methods=['GET', 'POST'])
 @login_required
 def dashboard():
+
     print(current_user.chats)
     chat_messages=[{"message": "asdasd"}]
     return render_template('dashboard.html', title="Dashboard", chat_messages=chat_messages)
