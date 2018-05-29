@@ -65,10 +65,10 @@ def register():
     return render_template('register.html', title='Register', form=form)
 
 # List of friends
-@app.route('/friends/<user_id>', methods = ['GET'])
+@application.route('/friends', methods = ['GET'])
 @login_required
-def friends(user_id):
-    users = User.query.get(user_id)
+def friends():
+    users = User.query.get(current_user.id)
     acc_in = users.in_friend_request.query.filter_by(accepted = True)
     acc_out = users.out_friend_request.query.filter_by(accepted = True)
     result = []
@@ -89,7 +89,7 @@ def friends(user_id):
     return render_template('friends.html', title = 'Friends', data = result)
 
 # Find user
-@app.route('/users', methods = ['GET'])
+@application.route('/users', methods = ['GET'])
 @login_required
 def find_user():
     f_name = request.args.get('name')
@@ -105,7 +105,7 @@ def find_user():
     return result_list
 
 # Profile
-@app.route('/profile/<id>', methods = ['GET'])
+@application.route('/profile/<id>', methods = ['GET'])
 @login_required
 def profile(id):
     f_user = User.query.get(id)
@@ -117,7 +117,7 @@ def profile(id):
     return render_template('profile.html', title = 'Profile', data = jsonify(result))
 
 # Send message
-@app.route('/chats', methods = ['GET', 'POST'])
+@application.route('/chats/<chat_id>', methods = ['POST'])
 @login_required
 def send_mess():
     sender_id = request.args.get('sender_id')
@@ -145,41 +145,45 @@ def send_mess():
             db.session.add(f)
     db.session.commit()
 
-# Open dialog
-@app.route('/chats', methods = ['GET'])
+# Load chat messages
+@application.route('/chats/<chat_id>', methods = ['GET'])
 @login_required
-def open_dia(user_id, chat_id):
-    user_id = request.args.get('sender_id')
-    chat_id = request.args.get('chat_id')
-    list_mess_file = []
-    list_mess_text = []
+def open_dia(chat_id):
+    list_mess = []
+    # TODO Load chat messages using current_user.id, inache mozhno
+    # zagruzit' chat lubogo 4eloveka, a eto ne bezopasno
     messages = Chat.in_messages.query.filter_by(chat_id).order_by(desc(created_time))
     for mess in messages:
         f_mess = {}
         f_mess['time'] = mess.created_time
         if mess.type == 'textmessage':
             f_mess['text'] = mess.textmessage.text
-            list_mess_text.append(f_mess)
+            list_mess.append(f_mess)
         if mess.type == 'filemessage':
             f_mess['file_name'] = mess.filemessage.filename
             f_mess['data'] = mess.filemessage.data
-            list_mess_file.append(f_mess)
-    return jsonify({list_mess_text, list_mess_file})
+            list_mess.append(f_mess)
+    return jsonify({list_mess})
 
 
 # Chats
-@app.route('/chats/<id>', methods = ['GET'])
+@application.route('/chats', methods = ['GET'])
 @login_required
-def list_chats(user_id):
-    chats = User.chats.query.get(user_id)
-    result = []
-    for f in chats:
-        f_chat = f.name
-        result.append(f_chat)
+def list_chats():
+
+    result = ['user1', 'user2', 'user4']
+    ### OSHIBKA NIZHE
+    # chats = User.chats.query.get(current_user.id)
+    ### OSHIBKA VISHE
+
+    # result = []
+    # for f in chats:
+    #     f_chat = f.name
+    #     result.append(f_chat)
     return render_template('chats.html', title = 'Chats', data = result)
 
 # Delete message
-@app.route('/chats/<id>', methods = ['GET', 'POST'])
+@application.route('/chats/<id>', methods = ['GET', 'POST'])
 @login_required
 def del_message(user_id, chat_id, message_id):
     user_id = request.args.get('sender_id')
@@ -195,7 +199,7 @@ def del_message(user_id, chat_id, message_id):
 
 
 # Loading Updates
-@app.route('/upd/<id>', methods = ['GET', 'POST'])
+@application.route('/upd/<id>', methods = ['GET', 'POST'])
 @login_required
 def load_upd():
     user_id = request.args.get('user_id')
@@ -227,7 +231,7 @@ def load_upd():
 
 
 #Send request
-@app.route('/friends', methods = ['GET', 'POST'])
+@application.route('/friends', methods = ['GET', 'POST'])
 @login_required
 def send_req():
     sender_id = request.args.get('user_id')
@@ -245,7 +249,7 @@ def send_req():
 
 
 # Accept request
-@app.route('/friends', methods = ['GET', 'POST'])
+@application.route('/friends', methods = ['GET', 'POST'])
 @login_required
 def acc_req():
     sender_id = request.args.get('user_id')
@@ -260,7 +264,7 @@ def acc_req():
     db.session.commit()
 
 # Delete friend
-@app.route('/friends', methods = ['GET', 'POST'])
+@application.route('/friends', methods = ['GET', 'POST'])
 @login_required
 def del_fr():
     user_id = request.args.get('user_id')
