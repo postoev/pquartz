@@ -105,3 +105,6 @@ ENV/
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
 
+# Navernoe, eto rabotaet tak
+*.db
+.DS_Store

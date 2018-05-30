@@ -14,15 +14,21 @@
         </div>
     </div>
 </div>
+<script>
+    function rel() {
+  window.location.reload();
+}
+setTimeout(rel, 10000);
+</script>
 <div class="container" style="margin-top: 60px; color: grey;">
     <div class="row">
         <div class="col">
             <div>
-                <input id="messagebody" type="textarea" style="width: 80%; height: 40px; float: left" placeholder="Enter your friend's name">
+                <input id="friendname" type="text" style="width: 79%; height: 40px; float: left" placeholder="Enter your friend's name">
                 <input type="button" style="width: 20%; height: 40px; text-align: center" value="Find">
             </div>
             <div class="container">
-                {% if len(data) == 0 %}
+                {% if len(friends) == 0 %}
                     <h3>You have no friends :(</h3>
                 {% endif %}
                 {% for friend in data %}
