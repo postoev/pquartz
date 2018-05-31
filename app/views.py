@@ -1,4 +1,4 @@
- from flask import render_template, flash, redirect, session, url_for, request, g
+from flask import render_template, flash, redirect, session, url_for, request, g
 from flask.ext.login import login_user, logout_user, current_user, login_required
 from werkzeug.urls import url_parse
 from . import application, db, bootstrap
@@ -6,6 +6,7 @@ from .forms import LoginForm, RegistrationForm
 from .models import User
 from flask import jsonify
 from sqlalchemy import desc
+
 
 # Index page (session control)
 @application.route('/')
@@ -69,8 +70,8 @@ def register():
 @login_required
 def friends():
     users = User.query.get(current_user.id)
-    acc_in = users.in_friend_request.query.filter_by(accepted = True)
-    acc_out = users.out_friend_request.query.filter_by(accepted = True)
+    acc_in = users.in_friend_requests.filter_by(accepted = True)
+    acc_out = users.out_friend_requests.filter_by(accepted = True)
     result = []
     for f in acc_in:
         f_result = {}
@@ -86,14 +87,14 @@ def friends():
         f_result['realname'] = f.realname
         f_result['email'] = f.email
         result.append(f_result)
-    return render_template('friends.html', title = 'Friends', data = result)
+    return render_template('friends.html', title='Friends', friends=result)
 
 # Find user
 @application.route('/users', methods = ['GET'])
 @login_required
 def find_user():
     f_name = request.args.get('name')
-    f_user = User.query.filter_by(name = f_name).first(10)
+    f_user = User.query.filter_by(name = f_name).limit(10).all()
     result_list = []
     for f in f_user:
         result = {}
@@ -102,7 +103,7 @@ def find_user():
         result['realname'] = f.realname
         result['email'] = f.email
         result_list.append(result)
-    return result_list
+    return jsonify(users=result_list)
 
 # Profile
 @application.route('/profile/<id>', methods = ['GET'])
@@ -114,7 +115,7 @@ def profile(id):
     result['name'] = f_user.name
     result['realname'] = f_user.realname
     result['email'] = f_user.email
-    return render_template('profile.html', title = 'Profile', data = jsonify(result))
+    return render_template('profile.html', title = 'Profile', data = result)
 
 # Send message
 @application.route('/chats/<chat_id>', methods = ['POST'])

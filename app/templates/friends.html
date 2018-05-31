@@ -28,10 +28,10 @@ setTimeout(rel, 10000);
                 <input type="button" style="width: 20%; height: 40px; text-align: center" value="Find">
             </div>
             <div class="container">
-                {% if len(friends) == 0 %}
+                {% if friends|length == 0 %}
                     <h3>You have no friends :(</h3>
                 {% endif %}
-                {% for friend in data %}
+                {% for friend in friends %}
                     <div>{{ friend.name }} is your friend</div>
                 {% endfor %}
             </div>

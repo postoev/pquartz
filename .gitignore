@@ -105,6 +105,8 @@ ENV/
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
 
-# Navernoe, eto rabotaet tak
-*.db
+# MacOS filesystem
 .DS_Store
+
+# Local database 
+*.db
