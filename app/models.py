@@ -15,12 +15,12 @@ MAX_TYPE_LENGTH = 32
 
 # Friend relationship
 in_friends = db.Table('in_friends',
-    db.Column('friendship_id', db.Integer, db.ForeignKey('friendship.id'), primary_key=True),
+    db.Column('friendship_id', db.Integer, db.ForeignKey('friendship.fr_id'), primary_key=True),
     db.Column('from_id', db.Integer, db.ForeignKey('user.id'))
 )
 
 out_friends = db.Table('out_friends',
-    db.Column('friendship_id', db.Integer, db.ForeignKey('friendship.id'), primary_key=True),
+    db.Column('friendship_id', db.Integer, db.ForeignKey('friendship.fr_id'), primary_key=True),
     db.Column('to_id', db.Integer, db.ForeignKey('user.id'))
 )
 
@@ -209,7 +209,7 @@ class UpdMessage(Update):
 
 
 class UpdFriend(Update):
-    friendship_id = db.Column(db.Integer, db.ForeignKey('friendship.id'))
+    friendship_id = db.Column(db.Integer, db.ForeignKey('friendship.fr_id'))
 
     __mapper_args__ = {
         'polymorphic_identity': 'updfriend'
