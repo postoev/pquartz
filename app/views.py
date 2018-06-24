@@ -63,36 +63,37 @@ def register():
         flash('Congratulations, you are now a registered user!')
         return redirect(url_for('login'))
 
-    return render_template('register.html', title='Register', form=form)
+    return render_template('register.html', title='Register', form = form)
 
 # List of friends
 @application.route('/friends', methods = ['GET'])
 @login_required
 def friends():
     users = User.query.get(current_user.id)
-    acc_in = users.in_friend_requests.filter_by(accepted = True)
-    acc_out = users.out_friend_requests.filter_by(accepted = True)
-    ta_in = acc_in.join(out_friends, (out_friends.c.friendship_id == acc_in.id))
+    acc_in = users.out_friend_requests.filter_by(accepted = True)
+    acc_out = users.in_friend_requests.filter_by(accepted = True)
+    '''ta_in = acc_in.join(out_friends, (out_friends.c.friendship_id == acc_in.id))
     tab_in = User.query.join(ta_in, (ta_in.to_id == User.id))
     ta_out = acc_out.join(in_friends, (in_friends.c.friendship_id == acc_out.id))
-    tab_out = User.query.join(ta_out, (ta_out.to_id == User.id))
+    tab_out = User.query.join(ta_out, (ta_out.to_id == User.id))'''
     result = []
-    for f in tab_in:
+    for f in acc_in:
         f_result = {}
-        f_result['id'] = f.id
-        f_result['name'] = f.name
-        f_result['realname'] = f.realname
-        f_result['email'] = f.email
+        user1 = f.request_out
+        f_result['id'] = user1.id
+        f_result['name'] = user1.name
+        f_result['realname'] = user1.realname
+        f_result['email'] = user1.email
         result.append(f_result)
-    for f in tab_out:
+    for f in acc_out:
         f_result = {}
-        f_result['id'] = f.id
-        f_result['name'] = f.name
-        f_result['realname'] = f.realname
-        f_result['email'] = f.email
+        user1 = f.request_in
+        f_result['id'] = user1.id
+        f_result['name'] = user1.name
+        f_result['realname'] = user1.realname
+        f_result['email'] = user1s.email
         result.append(f_result)
-    return render_template('friends.html', title='Friends', friends=result)
-
+    return render_template('friends.html', title='Friends', friends=jsonify(result))
 
 # Find user
 @application.route('/users', methods = ['GET'])
@@ -111,22 +112,21 @@ def find_user():
     return jsonify(users=result_list)
 
 # Profile
-@application.route('/profile/<id>', methods = ['GET'])
+@application.route('/profile', methods = ['GET'])
 @login_required
-def profile(id):
-    f_user = User.query.get(id)
+def profile():
+    f_user = User.query.get(current_user.id)
     result = {}
     result['id'] = f.id
     result['name'] = f_user.name
     result['realname'] = f_user.realname
     result['email'] = f_user.email
-    return render_template('profile.html', title = 'Profile', data = result)
+    return render_template('profile.html', title = 'Profile', data = jsonify(result))
 
 # Send message
 @application.route('/chats/<chat_id>', methods = ['POST'])
 @login_required
 def send_mess():
-    sender_id = request.args.get('sender_id')
     message = {}
     created_time = request.args.get('created_time')
     message['created_time'] = created_time
@@ -138,13 +138,13 @@ def send_mess():
     if type_mess == "filemessage":
         name_of_file = request.args.get('filename')
         message['filename'] = name_of_file
-    user1 = User.query.get(sender_id)
+    user1 = User.query.get(current_user.id)
     chat_id = request.args.get('chat_id')
     user1.out_messages.append(message)
     db.session.add(user1)
     us_chat = User.chats.query.filter_by(id == chat_id)
     for f in us_chat:
-        if f.id != sender_id:
+        if f.id != current_user.id:
             f.in_message.append(message)
             upd = UpdMessage(user=f, message=message)
             db.session.add(upd)
@@ -161,6 +161,7 @@ def open_dia(chat_id):
     messages = Chat.in_messages.query.filter_by(chat_id).order_by(desc(created_time))
     for mess in messages:
         f_mess = {}
+        f_mess['id'] = mess.id
         f_mess['time'] = mess.created_time
         if mess.type == 'textmessage':
             f_mess['text'] = mess.textmessage.text
@@ -176,26 +177,25 @@ def open_dia(chat_id):
 @application.route('/chats', methods = ['GET'])
 @login_required
 def list_chats():
-
     user = User.query.get(current_user.id)
     chats = user.chats.query.get()
 
     result = []
     for f in chats:
+        f_chat = f.id
         f_chat = f.name
         result.append(f_chat)
-    return render_template('chats.html', title = 'Chats', data = result)
-
+    return render_template('chats.html', title = 'Chats', data = jsonify(result))
 
 # Delete message
-@application.route('/chats/<id>', methods = ['GET', 'POST'])
+@application.route('/chats', methods = ['GET', 'POST'])
 @login_required
-def del_message(user_id, chat_id, message_id):
-    user_id = request.args.get('sender_id')
+def del_message():
+
     chat_id = request.args.get('chat_id')
     message_id = request.args.get('message_id')
     chat1 = Chat.query.get(chat_id)
-    user1 = User.query.get(user_id)
+    user1 = User.query.get(current_user.id)
     mess = chat1.in_messages.query.get(message_id)
     mess.delete()
     mess1 = user1.out_messages.query.get(message_id)
@@ -207,7 +207,7 @@ def del_message(user_id, chat_id, message_id):
 @application.route('/upd/<id>', methods = ['GET', 'POST'])
 @login_required
 def load_upd():
-    user_id = request.args.get('user_id')
+    user_id = current_user.id
     upd = db.session.updates.get(user.id == user_id)
     tmess_upd = []
     fmess_upd = []
@@ -239,9 +239,9 @@ def load_upd():
 @application.route('/friends', methods = ['GET', 'POST'])
 @login_required
 def send_req():
-    sender_id = request.args.get('user_id')
+
     fr_id = request.args.get('user_id')
-    user1 = User.query.get(sender_id)
+    user1 = User.query.get(current_user.id)
     user2 = User.query.get(fr_id)
     relationship1 = Friendship(accepted = False)
     upd = UpdFriend(user = user2, friendship = relationship1)
@@ -257,9 +257,8 @@ def send_req():
 @application.route('/friends', methods = ['GET', 'POST'])
 @login_required
 def acc_req():
-    sender_id = request.args.get('user_id')
     fr_id = request.args.get('user_id')
-    user1 = User.query.get(sender_id)
+    user1 = User.query.get(current_user.id)
     user2 = User.query.get(fr_id)
     relationship1 = Friendship(accepted=True)
     user1.out_friend_requests.append(relationship1)
@@ -272,9 +271,9 @@ def acc_req():
 @application.route('/friends', methods = ['GET', 'POST'])
 @login_required
 def del_fr():
-    user_id = request.args.get('user_id')
+
     fr_id = request.args.get('fr_id')
-    user1 = User.query.get(user_id)
+    user1 = User.query.get(current_user.id)
     fr = user1.in_friend.query.get(fr_id)
     if fr:
         fr.accepted = False
