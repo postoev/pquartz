@@ -72,15 +72,19 @@ def friends():
     users = User.query.get(current_user.id)
     acc_in = users.in_friend_requests.filter_by(accepted = True)
     acc_out = users.out_friend_requests.filter_by(accepted = True)
+    ta_in = acc_in.join(out_friends, (out_friends.c.friendship_id == acc_in.id))
+    tab_in = User.query.join(ta_in, (ta_in.to_id == User.id))
+    ta_out = acc_out.join(in_friends, (in_friends.c.friendship_id == acc_out.id))
+    tab_out = User.query.join(ta_out, (ta_out.to_id == User.id))
     result = []
-    for f in acc_in:
+    for f in tab_in:
         f_result = {}
         f_result['id'] = f.id
         f_result['name'] = f.name
         f_result['realname'] = f.realname
         f_result['email'] = f.email
         result.append(f_result)
-    for f in acc_out:
+    for f in tab_out:
         f_result = {}
         f_result['id'] = f.id
         f_result['name'] = f.name
@@ -88,6 +92,7 @@ def friends():
         f_result['email'] = f.email
         result.append(f_result)
     return render_template('friends.html', title='Friends', friends=result)
+
 
 # Find user
 @application.route('/users', methods = ['GET'])
@@ -172,16 +177,15 @@ def open_dia(chat_id):
 @login_required
 def list_chats():
 
-    result = ['user1', 'user2', 'user4']
-    ### OSHIBKA NIZHE
-    # chats = User.chats.query.get(current_user.id)
-    ### OSHIBKA VISHE
+    user = User.query.get(current_user.id)
+    chats = user.chats.query.get()
 
-    # result = []
-    # for f in chats:
-    #     f_chat = f.name
-    #     result.append(f_chat)
+    result = []
+    for f in chats:
+        f_chat = f.name
+        result.append(f_chat)
     return render_template('chats.html', title = 'Chats', data = result)
+
 
 # Delete message
 @application.route('/chats/<id>', methods = ['GET', 'POST'])
